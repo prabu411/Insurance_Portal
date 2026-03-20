@@ -1,3 +1,6 @@
+Demo video is Uploaded in Github Due To  Technical issues in Youtube Channel
+
+
 # 🛡️ GigShield — AI-Powered Parametric Insurance for Gig Workers
 
 > Automatic payouts when weather disruptions stop you from working. No claim forms. No waiting.
