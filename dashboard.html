@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GigShield — Worker Dashboard</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .dash-grid { display: grid; grid-template-columns: 300px 1fr; gap: 1.5rem; max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+    @media(max-width:900px){ .dash-grid { grid-template-columns: 1fr; } }
+    .sidebar .card { margin-bottom: 1rem; }
+    .worker-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; margin: 0 auto 1rem; }
+    .sim-btn { width: 100%; margin-bottom: 0.5rem; text-align: left; padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid #ffffff15; background: var(--card2); color: var(--text); cursor: pointer; font-size: 0.9rem; transition: border-color 0.2s; }
+    .sim-btn:hover { border-color: var(--primary); }
+    .claim-row { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 0; border-bottom: 1px solid #ffffff08; }
+    .no-worker { text-align: center; padding: 3rem; color: var(--muted); }
+    #payoutModal .payout-anim { padding: 1.5rem 0; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Gig<span>Shield</span></div>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="admin.html">Admin Panel</a>
+    <span class="live-badge">Live</span>
+  </div>
+</nav>
+
+<div id="noWorkerMsg" class="no-worker" style="display:none">
+  <div style="font-size:3rem">🪪</div>
+  <h2 style="margin:1rem 0">No Policy Found</h2>
+  <p>Register first to access your dashboard.</p>
+  <a href="index.html#register" class="btn btn-primary" style="margin-top:1rem">Get Covered →</a>
+</div>
+
+<div class="dash-grid" id="dashContent">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="card" style="text-align:center">
+      <div class="worker-avatar" id="avatarInitial">?</div>
+      <h3 id="workerName">--</h3>
+      <div style="color:var(--muted);font-size:0.85rem" id="workerPlatform">--</div>
+      <div style="margin:0.75rem 0"><span class="tag tag-success">● Active Policy</span></div>
+      <div style="font-size:0.8rem;color:var(--muted)" id="policyId">--</div>
+    </div>
+
+    <div class="card">
+      <div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.5rem">WALLET BALANCE</div>
+      <div style="font-size:2rem;font-weight:800;color:var(--success)" id="walletBalance">₹0</div>
+      <div style="color:var(--muted);font-size:0.8rem;margin-top:0.3rem">Total earned from claims</div>
+    </div>
+
+    <div class="card">
+      <div style="color:var(--muted);font-size:0.8rem;margin-bottom:1rem">RISK PROFILE</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem">
+        <span style="font-size:0.9rem">Risk Score</span>
+        <strong id="riskScore">--</strong>
+      </div>
+      <div class="risk-bar"><div class="risk-fill" id="riskBar" style="width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:0.75rem">
+        <span style="color:var(--muted);font-size:0.85rem">Weekly Premium</span>
+        <strong id="weeklyPremium">--</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:0.5rem">
+        <span style="color:var(--muted);font-size:0.85rem">City</span>
+        <strong id="workerCity">--</strong>
+      </div>
+    </div>
+
+    <!-- SIMULATE DISRUPTIONS -->
+    <div class="card">
+      <div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.75rem">🧪 SIMULATE DISRUPTION</div>
+      <button class="sim-btn" onclick="simulate('rain')">🌧️ Heavy Rainfall (&gt;50mm)</button>
+      <button class="sim-btn" onclick="simulate('aqi')">😷 Hazardous AQI (&gt;200)</button>
+      <button class="sim-btn" onclick="simulate('flood')">🌊 Flood Alert</button>
+      <button class="sim-btn" onclick="simulate(null)">🎲 Random Weather Check</button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div>
+    <!-- WEATHER WIDGET -->
+    <div class="weather-widget" id="weatherWidget">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+        <div>
+          <div style="color:var(--muted);font-size:0.8rem;margin-bottom:0.5rem">CURRENT CONDITIONS · <span id="wxCity">--</span></div>
+          <div style="display:flex;align-items:center;gap:1rem">
+            <div class="weather-icon" id="wxIcon">🌤️</div>
+            <div>
+              <div class="weather-temp" id="wxTemp">--°C</div>
+              <div id="wxCondition" style="font-size:0.9rem;color:var(--muted)">Loading...</div>
+            </div>
+          </div>
+        </div>
+        <div class="weather-detail">
+          <div><div class="val" id="wxRain">--</div><div class="lbl">Rainfall (mm)</div></div>
+          <div><div class="val" id="wxAqi">--</div><div class="lbl">AQI</div></div>
+          <div><div class="val" id="wxHumid">--</div><div class="lbl">Humidity %</div></div>
+          <div><div class="val" id="wxWind">--</div><div class="lbl">Wind km/h</div></div>
+        </div>
+      </div>
+      <div id="disruptionAlerts" style="margin-top:1rem"></div>
+    </div>
+
+    <!-- STATS ROW -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.5rem">
+      <div class="stat-card"><div class="icon">📋</div><div class="value" id="totalClaims">0</div><div class="label">Total Claims</div></div>
+      <div class="stat-card"><div class="icon">✅</div><div class="value" id="paidClaims">0</div><div class="label">Paid Out</div></div>
+      <div class="stat-card"><div class="icon">💸</div><div class="value" id="totalEarned">₹0</div><div class="label">Total Earned</div></div>
+    </div>
+
+    <!-- WEEKLY RAINFALL CHART -->
+    <div class="card" style="margin-top:1.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <div style="font-weight:700">7-Day Rainfall History</div>
+        <span style="color:var(--muted);font-size:0.8rem">mm · Threshold: 50mm</span>
+      </div>
+      <div class="chart-bar-wrap" id="rainfallChart"></div>
+      <div class="chart-labels" id="rainfallLabels"></div>
+      <div style="margin-top:0.5rem;display:flex;gap:1rem;font-size:0.75rem">
+        <span style="color:var(--primary)">■ Normal</span>
+        <span style="color:var(--danger)">■ Above threshold</span>
+      </div>
+    </div>
+
+    <!-- CLAIMS HISTORY -->
+    <div class="card" style="margin-top:1.5rem">
+      <div style="font-weight:700;margin-bottom:1rem">Claims History</div>
+      <div id="claimsTable">
+        <div style="text-align:center;padding:2rem;color:var(--muted)">No claims yet. Simulate a disruption to trigger one.</div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY TIMELINE -->
+    <div class="card" style="margin-top:1.5rem">
+      <div style="font-weight:700;margin-bottom:1rem">Activity Log</div>
+      <div class="timeline" id="activityLog">
+        <div class="timeline-item done"><div class="time">Today</div><div class="event">Policy activated successfully</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYOUT MODAL -->
+<div class="modal-overlay" id="payoutModal">
+  <div class="modal">
+    <span class="modal-close" onclick="closePayoutModal()">✕</span>
+    <div id="payoutContent"></div>
+  </div>
+</div>
+
+<footer>
+  <div>GigShield · Worker Dashboard · <span style="color:var(--primary)">Prototype Demo</span></div>
+</footer>
+
+<script src="js/insurance.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/fraud.js"></script>
+<script>
+  let currentWorker = null;
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  function init() {
+    const workers = InsuranceState.workers;
+    if (!workers.length) {
+      document.getElementById('dashContent').style.display = 'none';
+      document.getElementById('noWorkerMsg').style.display = 'block';
+      return;
+    }
+    currentWorker = workers[workers.length - 1]; // latest registered
+    renderWorkerInfo();
+    loadWeather(null);
+    renderClaims();
+    renderChart();
+  }
+
+  function renderWorkerInfo() {
+    const w = currentWorker;
+    document.getElementById('avatarInitial').textContent = w.name.charAt(0).toUpperCase();
+    document.getElementById('workerName').textContent    = w.name;
+    document.getElementById('workerPlatform').textContent = w.platform.charAt(0).toUpperCase() + w.platform.slice(1) + ' Delivery Partner';
+    document.getElementById('policyId').textContent      = w.id;
+    document.getElementById('walletBalance').textContent = '₹' + w.balance;
+    document.getElementById('riskScore').textContent     = w.riskScore + '/100';
+    document.getElementById('weeklyPremium').textContent = '₹' + w.premium + '/week';
+    document.getElementById('workerCity').textContent    = w.zone;
+    const bar = document.getElementById('riskBar');
+    bar.style.width = w.riskScore + '%';
+    bar.className   = 'risk-fill ' + w.barCls;
+  }
+
+  function loadWeather(forceDisruption) {
+    const w = currentWorker;
+    const wx = getWeather(w.city, forceDisruption);
+    document.getElementById('wxCity').textContent    = w.zone.toUpperCase();
+    document.getElementById('wxTemp').textContent    = wx.temp + '°C';
+    document.getElementById('wxCondition').textContent = wx.condition.label;
+    document.getElementById('wxRain').textContent    = wx.rainfall;
+    document.getElementById('wxAqi').textContent     = wx.aqi;
+    document.getElementById('wxHumid').textContent   = wx.humidity + '%';
+    document.getElementById('wxWind').textContent    = wx.windSpeed;
+
+    const icons = { '☀️ Clear': '☀️', '🌧️ Moderate Rain': '🌧️', '⛈️ Heavy Rain': '⛈️', '🌊 Flood Alert': '🌊', '😷 Hazardous AQI': '😷', '😮 Poor AQI': '😮' };
+    document.getElementById('wxIcon').textContent = icons[wx.condition.label] || '🌤️';
+
+    const alertsDiv = document.getElementById('disruptionAlerts');
+    alertsDiv.innerHTML = '';
+    if (wx.disruptions.length === 0) {
+      alertsDiv.innerHTML = '<div class="alert alert-success">✅ No active disruptions. Conditions are safe for delivery.</div>';
+    } else {
+      wx.disruptions.forEach(d => {
+        alertsDiv.innerHTML += `<div class="alert alert-danger">🚨 Disruption Detected: ${PAYOUT_TABLE[d.type].label} — ${d.value} ${d.unit} · Auto-claim triggered</div>`;
+      });
+    }
+    return wx;
+  }
+
+  function simulate(type) {
+    const wx = loadWeather(type);
+    if (wx.disruptions.length === 0) {
+      addLog('🌤️ Weather check: No disruptions detected');
+      return;
+    }
+    wx.disruptions.forEach(d => processClaim(d.type, wx));
+  }
+
+  function processClaim(type, wx) {
+    const claim = InsuranceState.addClaim(currentWorker.id, type, wx);
+    if (!claim) return;
+
+    addLog(`🚨 Disruption: ${claim.label} detected`);
+    addLog(`📋 Claim ${claim.id} created — running fraud check...`);
+
+    // Fraud analysis
+    setTimeout(() => {
+      const result = analyzeFraud(currentWorker, claim, InsuranceState.claims);
+      claim.fraudScore = result.score;
+
+      if (result.verdict === 'flagged') {
+        InsuranceState.flagClaim(claim.id, result.score);
+        addLog(`⚠️ Claim ${claim.id} flagged for review (fraud score: ${result.score})`);
+        showFlaggedModal(claim, result);
+      } else {
+        addLog(`✅ Fraud check passed (score: ${result.score}) — processing payout...`);
+        setTimeout(() => {
+          InsuranceState.approveClaim(claim.id);
+          currentWorker = InsuranceState.workers.find(w => w.id === currentWorker.id);
+          renderWorkerInfo();
+          renderClaims();
+          addLog(`💰 ₹${claim.payout} credited to wallet`);
+          showPayoutModal(claim);
+        }, 1500);
+      }
+      renderClaims();
+    }, 1200);
+  }
+
+  function showPayoutModal(claim) {
+    document.getElementById('payoutContent').innerHTML = `
+      <div class="payout-anim">
+        <div style="font-size:3rem">💸</div>
+        <h3 style="margin:0.75rem 0">Payout Processed!</h3>
+        <div class="amount">₹${claim.payout}</div>
+        <p style="color:var(--muted);margin:1rem 0">Claim: ${claim.label}<br>Policy: ${claim.workerId}</p>
+        <div class="alert alert-success" style="text-align:left">
+          ✅ Fraud check passed · Auto-approved · Credited instantly
+        </div>
+        <button class="btn btn-success" style="width:100%;margin-top:1rem" onclick="closePayoutModal()">Done</button>
+      </div>`;
+    document.getElementById('payoutModal').classList.add('active');
+  }
+
+  function showFlaggedModal(claim, result) {
+    document.getElementById('payoutContent').innerHTML = `
+      <div style="text-align:center">
+        <div style="font-size:3rem">⚠️</div>
+        <h3 style="margin:0.75rem 0">Claim Under Review</h3>
+        <p style="color:var(--muted);margin-bottom:1rem">Our fraud detection flagged this claim for secondary verification.</p>
+        <div class="alert alert-warning" style="text-align:left;margin-bottom:1rem">
+          Fraud Score: <strong>${result.score}/100</strong><br>
+          ${result.flags.map(f => '• ' + f).join('<br>')}
+        </div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">You can confirm your activity to proceed with the claim.</p>
+        <button class="btn btn-primary" style="width:100%" onclick="confirmActivity('${claim.id}')">Confirm My Activity</button>
+        <button class="btn btn-secondary" style="width:100%;margin-top:0.5rem" onclick="closePayoutModal()">Cancel</button>
+      </div>`;
+    document.getElementById('payoutModal').classList.add('active');
+  }
+
+  function confirmActivity(claimId) {
+    InsuranceState.approveClaim(claimId);
+    currentWorker = InsuranceState.workers.find(w => w.id === currentWorker.id);
+    const claim = InsuranceState.claims.find(c => c.id === claimId);
+    renderWorkerInfo();
+    renderClaims();
+    addLog(`✅ Activity confirmed — ₹${claim.payout} credited after manual verification`);
+    showPayoutModal(claim);
+  }
+
+  function renderClaims() {
+    const myClaims = InsuranceState.claims.filter(c => c.workerId === currentWorker.id).reverse();
+    const paid = myClaims.filter(c => c.status === 'paid');
+    const total = myClaims.reduce((s, c) => c.status === 'paid' ? s + c.payout : s, 0);
+
+    document.getElementById('totalClaims').textContent = myClaims.length;
+    document.getElementById('paidClaims').textContent  = paid.length;
+    document.getElementById('totalEarned').textContent = '₹' + total;
+
+    if (!myClaims.length) return;
+    const tbody = myClaims.map(c => {
+      const fl = getFraudLabel(c.fraudScore || 0);
+      const statusTag = c.status === 'paid' ? 'tag-success' : c.status === 'flagged' ? 'tag-danger' : 'tag-warning';
+      return `<div class="claim-row">
+        <div>
+          <div style="font-weight:600">${c.label}</div>
+          <div style="color:var(--muted);font-size:0.8rem">${c.id} · ${new Date(c.triggeredAt).toLocaleString()}</div>
+        </div>
+        <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
+          <span class="tag ${fl.cls}">${fl.label}</span>
+          <span class="tag ${statusTag}">${c.status}</span>
+          <strong style="color:var(--success)">₹${c.payout}</strong>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('claimsTable').innerHTML = tbody;
+  }
+
+  function renderChart() {
+    const data   = getWeeklyRainfall(currentWorker.city);
+    const maxVal = Math.max(...data, 60);
+    const chart  = document.getElementById('rainfallChart');
+    const labels = document.getElementById('rainfallLabels');
+    chart.innerHTML  = data.map(v => {
+      const h   = Math.round((v / maxVal) * 100);
+      const col = v > 50 ? 'var(--danger)' : 'var(--primary)';
+      return `<div class="chart-bar" style="height:${h}%;background:${col}" title="${v}mm"></div>`;
+    }).join('');
+    labels.innerHTML = days.map(d => `<span>${d}</span>`).join('');
+  }
+
+  function addLog(msg) {
+    const log = document.getElementById('activityLog');
+    const item = document.createElement('div');
+    item.className = 'timeline-item done';
+    item.innerHTML = `<div class="time">${new Date().toLocaleTimeString()}</div><div class="event">${msg}</div>`;
+    log.insertBefore(item, log.firstChild);
+  }
+
+  function closePayoutModal() {
+    document.getElementById('payoutModal').classList.remove('active');
+  }
+
+  init();
+</script>
+</body>
+</html>

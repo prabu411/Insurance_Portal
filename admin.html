@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GigShield — Admin Panel</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .admin-wrap { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+    .tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab { padding: 0.5rem 1.2rem; border-radius: 8px; border: 1px solid #ffffff15; background: var(--card); cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+    .tab.active { background: var(--primary); border-color: var(--primary); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .city-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #ffffff08; }
+    .fraud-score-bar { height: 6px; border-radius: 3px; background: #ffffff15; overflow: hidden; width: 80px; display: inline-block; vertical-align: middle; margin-left: 0.5rem; }
+    .fraud-score-fill { height: 100%; border-radius: 3px; }
+    .metric-row { display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid #ffffff08; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Gig<span>Shield</span> <span style="font-size:0.7rem;color:var(--muted);font-weight:400">Admin</span></div>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="dashboard.html">Worker Dashboard</a>
+    <span class="live-badge">Live</span>
+  </div>
+</nav>
+
+<div class="admin-wrap">
+
+  <!-- TOP STATS -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem" id="adminStats">
+    <div class="stat-card"><div class="icon">👥</div><div class="value" id="statWorkers">0</div><div class="label">Registered Workers</div></div>
+    <div class="stat-card"><div class="icon">📋</div><div class="value" id="statClaims">0</div><div class="label">Total Claims</div></div>
+    <div class="stat-card"><div class="icon">✅</div><div class="value" id="statPaid">0</div><div class="label">Claims Paid</div></div>
+    <div class="stat-card"><div class="icon">⚠️</div><div class="value" id="statFlagged">0</div><div class="label">Flagged Claims</div></div>
+    <div class="stat-card"><div class="icon">💰</div><div class="value" id="statPayout">₹0</div><div class="label">Total Payouts</div></div>
+    <div class="stat-card"><div class="icon">🛡️</div><div class="value" id="statPremiums">₹0</div><div class="label">Premiums Collected</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('workers')">👥 Workers</div>
+    <div class="tab" onclick="switchTab('claims')">📋 Claims</div>
+    <div class="tab" onclick="switchTab('fraud')">🛡️ Fraud Monitor</div>
+    <div class="tab" onclick="switchTab('weather')">🌦️ City Weather</div>
+    <div class="tab" onclick="switchTab('seed')">🧪 Seed Demo Data</div>
+  </div>
+
+  <!-- WORKERS TAB -->
+  <div class="tab-content active" id="tab-workers">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:1rem">Registered Workers</div>
+      <div id="workersTable"><div style="text-align:center;padding:2rem;color:var(--muted)">No workers registered yet.</div></div>
+    </div>
+  </div>
+
+  <!-- CLAIMS TAB -->
+  <div class="tab-content" id="tab-claims">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem">
+        <div style="font-weight:700">All Claims</div>
+        <div style="display:flex;gap:0.5rem">
+          <select id="claimFilter" aria-label="Filter claims by status" onchange="renderClaims()" style="background:var(--card2);border:1px solid #ffffff20;color:var(--text);padding:0.4rem 0.75rem;border-radius:6px;font-size:0.85rem">
+            <option value="all">All Status</option>
+            <option value="paid">Paid</option>
+            <option value="processing">Processing</option>
+            <option value="flagged">Flagged</option>
+          </select>
+        </div>
+      </div>
+      <div id="claimsTable"><div style="text-align:center;padding:2rem;color:var(--muted)">No claims yet.</div></div>
+    </div>
+  </div>
+
+  <!-- FRAUD TAB -->
+  <div class="tab-content" id="tab-fraud">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem" class="fraud-grid">
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:1rem">🚨 Flagged Claims</div>
+        <div id="fraudList"><div style="color:var(--muted);font-size:0.9rem">No flagged claims.</div></div>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:1rem">📊 Fraud Detection Metrics</div>
+        <div class="metric-row"><span style="color:var(--muted)">Detection Rate</span><strong id="detectionRate">0%</strong></div>
+        <div class="metric-row"><span style="color:var(--muted)">False Positive Est.</span><strong style="color:var(--warning)">~5%</strong></div>
+        <div class="metric-row"><span style="color:var(--muted)">GPS Spoof Attempts</span><strong id="spoofAttempts">0</strong></div>
+        <div class="metric-row"><span style="color:var(--muted)">Auto-Approved</span><strong id="autoApproved">0</strong></div>
+        <div class="metric-row"><span style="color:var(--muted)">Manual Reviews</span><strong id="manualReviews">0</strong></div>
+        <div style="margin-top:1.5rem">
+          <div style="font-weight:600;margin-bottom:0.75rem;font-size:0.9rem">Signals Monitored</div>
+          <div style="font-size:0.85rem;color:var(--muted);line-height:1.8">
+            ✅ Claim frequency analysis<br>
+            ✅ GPS location consistency<br>
+            ✅ Device motion (accelerometer)<br>
+            ✅ Off-hours detection<br>
+            ✅ Duplicate event detection<br>
+            ✅ Behavioral pattern baseline
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEATHER TAB -->
+  <div class="tab-content" id="tab-weather">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem" id="cityWeatherGrid"></div>
+  </div>
+
+  <!-- SEED TAB -->
+  <div class="tab-content" id="tab-seed">
+    <div class="card" style="max-width:500px">
+      <div style="font-weight:700;margin-bottom:0.5rem">🧪 Demo Data Seeder</div>
+      <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1.5rem">Populate the app with sample workers and claims to explore the full prototype.</p>
+      <button type="button" class="btn btn-primary" onclick="seedData()" style="width:100%;margin-bottom:0.75rem">Seed 12 Sample Workers + Claims</button>
+      <button type="button" class="btn btn-danger btn-sm" onclick="clearData()" style="width:100%">🗑️ Clear All Data</button>
+      <div id="seedMsg" style="margin-top:1rem"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div>GigShield · Admin Panel · <span style="color:var(--primary)">Prototype Demo</span></div>
+</footer>
+
+<script src="js/insurance.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/fraud.js"></script>
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'weather') renderCityWeather();
+    if (name === 'fraud')   renderFraud();
+    if (name === 'claims')  renderClaims();
+  }
+
+  function renderStats() {
+    const workers = InsuranceState.workers;
+    const claims  = InsuranceState.claims;
+    const paid    = claims.filter(c => c.status === 'paid');
+    const flagged = claims.filter(c => c.status === 'flagged');
+    const totalPayout   = paid.reduce((s,c) => s + c.payout, 0);
+    const totalPremiums = workers.reduce((s,w) => s + w.totalPaid, 0);
+
+    document.getElementById('statWorkers').textContent  = workers.length;
+    document.getElementById('statClaims').textContent   = claims.length;
+    document.getElementById('statPaid').textContent     = paid.length;
+    document.getElementById('statFlagged').textContent  = flagged.length;
+    document.getElementById('statPayout').textContent   = '₹' + totalPayout;
+    document.getElementById('statPremiums').textContent = '₹' + totalPremiums;
+  }
+
+  function renderWorkers() {
+    const workers = InsuranceState.workers;
+    if (!workers.length) return;
+    const rows = workers.map(w => `
+      <tr>
+        <td><strong>${w.name}</strong><br><span style="color:var(--muted);font-size:0.8rem">${w.id}</span></td>
+        <td>${w.zone}</td>
+        <td style="text-transform:capitalize">${w.platform}</td>
+        <td><span class="tag ${w.riskCls}">${w.riskLabel}</span></td>
+        <td>₹${w.premium}/wk</td>
+        <td>${w.claimsCount}</td>
+        <td style="color:var(--success)">₹${w.balance}</td>
+        <td><span class="tag tag-success">Active</span></td>
+      </tr>`).join('');
+    document.getElementById('workersTable').innerHTML = `
+      <table>
+        <thead><tr><th>Worker</th><th>City</th><th>Platform</th><th>Risk</th><th>Premium</th><th>Claims</th><th>Earned</th><th>Status</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function renderClaims() {
+    const filter = document.getElementById('claimFilter')?.value || 'all';
+    let claims = [...InsuranceState.claims].reverse();
+    if (filter !== 'all') claims = claims.filter(c => c.status === filter);
+    if (!claims.length) { document.getElementById('claimsTable').innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted)">No claims found.</div>'; return; }
+    const rows = claims.map(c => {
+      const fl = getFraudLabel(c.fraudScore || 0);
+      const sc = c.status === 'paid' ? 'tag-success' : c.status === 'flagged' ? 'tag-danger' : 'tag-warning';
+      return `<tr>
+        <td><strong>${c.id}</strong></td>
+        <td>${c.workerName}</td>
+        <td>${c.label}</td>
+        <td>${c.city.charAt(0).toUpperCase()+c.city.slice(1)}</td>
+        <td><span class="tag ${fl.cls}">${fl.label}
+          <span class="fraud-score-bar"><span class="fraud-score-fill" style="width:${c.fraudScore||0}%;background:${(c.fraudScore||0)>=60?'var(--danger)':(c.fraudScore||0)>=30?'var(--warning)':'var(--success)'}"></span></span>
+        </span></td>
+        <td><span class="tag ${sc}">${c.status}</span></td>
+        <td style="color:var(--success)">₹${c.payout}</td>
+        <td style="color:var(--muted);font-size:0.8rem">${new Date(c.triggeredAt).toLocaleString()}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('claimsTable').innerHTML = `
+      <table>
+        <thead><tr><th>Claim ID</th><th>Worker</th><th>Type</th><th>City</th><th>Fraud Score</th><th>Status</th><th>Payout</th><th>Time</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function renderFraud() {
+    const flagged = InsuranceState.claims.filter(c => c.status === 'flagged');
+    document.getElementById('fraudList').innerHTML = flagged.length
+      ? flagged.map(c => `
+          <div style="padding:0.75rem;background:var(--card2);border-radius:8px;margin-bottom:0.75rem;border-left:3px solid var(--danger)">
+            <div style="display:flex;justify-content:space-between"><strong>${c.id}</strong><span class="tag tag-danger">Flagged</span></div>
+            <div style="color:var(--muted);font-size:0.85rem;margin-top:0.3rem">${c.workerName} · ${c.label} · Score: ${c.fraudScore}</div>
+          </div>`).join('')
+      : '<div style="color:var(--muted);font-size:0.9rem">No flagged claims.</div>';
+
+    const claims  = InsuranceState.claims;
+    const flaggedN = claims.filter(c => c.status === 'flagged').length;
+    document.getElementById('detectionRate').textContent = claims.length ? Math.round((flaggedN/claims.length)*100) + '%' : '0%';
+    document.getElementById('spoofAttempts').textContent = flaggedN;
+    document.getElementById('autoApproved').textContent  = claims.filter(c => c.status === 'paid').length;
+    document.getElementById('manualReviews').textContent = flaggedN;
+  }
+
+  function renderCityWeather() {
+    const cities = Object.keys(ZONES);
+    const grid = document.getElementById('cityWeatherGrid');
+    grid.innerHTML = cities.map(city => {
+      const wx   = getWeather(city);
+      const zone = ZONES[city];
+      const aqiL = getAqiLabel(wx.aqi);
+      return `
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+            <strong>${zone.name}</strong>
+            <span class="tag ${wx.disruptions.length ? 'tag-danger' : 'tag-success'}">${wx.disruptions.length ? '🚨 Disruption' : '✅ Clear'}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.85rem">
+            <div><span style="color:var(--muted)">Rainfall</span><br><strong>${wx.rainfall} mm ${parseFloat(wx.rainfall)>50?'🔴':''}</strong></div>
+            <div><span style="color:var(--muted)">AQI</span><br><strong>${wx.aqi} <span class="tag ${aqiL.cls}" style="font-size:0.7rem">${aqiL.label}</span></strong></div>
+            <div><span style="color:var(--muted)">Temp</span><br><strong>${wx.temp}°C</strong></div>
+            <div><span style="color:var(--muted)">Flood</span><br><strong>${wx.flood ? '🌊 Alert' : 'None'}</strong></div>
+          </div>
+          <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--muted)">Risk: <span class="tag ${zone.riskScore>=70?'tag-danger':zone.riskScore>=45?'tag-warning':'tag-success'}">${zone.riskScore}/100</span></div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Seed Demo Data ──────────────────────────────────────────────
+  const DEMO_WORKERS = [
+    { name: 'Rahul Kumar',        phone: '9876543210', city: 'mumbai',    platform: 'swiggy',  hoursPerWeek: 55 },
+    { name: 'Priya Sharma',       phone: '9123456780', city: 'delhi',     platform: 'zomato',  hoursPerWeek: 28 },
+    { name: 'Arjun Nair',         phone: '9988776655', city: 'bangalore', platform: 'zepto',   hoursPerWeek: 15 },
+    { name: 'Sunita Devi',        phone: '9765432109', city: 'chennai',   platform: 'blinkit', hoursPerWeek: 55 },
+    { name: 'Mohammed Rafi',      phone: '9654321098', city: 'hyderabad', platform: 'dunzo',   hoursPerWeek: 42 },
+    { name: 'Kavitha Reddy',      phone: '9543210987', city: 'pune',      platform: 'swiggy',  hoursPerWeek: 28 },
+    { name: 'Deepak Yadav',       phone: '9432109876', city: 'mumbai',    platform: 'zomato',  hoursPerWeek: 42 },
+    { name: 'Anita Patel',        phone: '9321098765', city: 'delhi',     platform: 'zepto',   hoursPerWeek: 55 },
+    { name: 'Suresh Babu',        phone: '9210987654', city: 'chennai',   platform: 'swiggy',  hoursPerWeek: 15 },
+    { name: 'Lakshmi Venkatesh',  phone: '9109876543', city: 'bangalore', platform: 'blinkit', hoursPerWeek: 42 },
+    { name: 'Ravi Shankar',       phone: '9098765432', city: 'hyderabad', platform: 'zomato',  hoursPerWeek: 28 },
+    { name: 'Meena Kumari',       phone: '9087654321', city: 'pune',      platform: 'dunzo',   hoursPerWeek: 55 },
+  ];
+
+  function seedData() {
+    DEMO_WORKERS.forEach(d => {
+      const existing = InsuranceState.workers.find(w => w.phone === d.phone);
+      if (existing) return;
+      const worker = InsuranceState.addWorker(d);
+      // Add some claims
+      const types = ['rain','aqi','flood'];
+      const t = types[Math.floor(Math.random() * types.length)];
+      const wx = getWeather(d.city, t);
+      const claim = InsuranceState.addClaim(worker.id, t, wx);
+      if (claim) {
+        const fraud = analyzeFraud(worker, claim, InsuranceState.claims);
+        if (fraud.verdict === 'flagged') {
+          InsuranceState.flagClaim(claim.id, fraud.score);
+        } else {
+          InsuranceState.approveClaim(claim.id);
+          worker.balance += claim.payout;
+          InsuranceState.save();
+        }
+      }
+    });
+    document.getElementById('seedMsg').innerHTML = '<div class="alert alert-success">✅ Demo data seeded successfully!</div>';
+    renderAll();
+  }
+
+  function clearData() {
+    if (!confirm('Clear all data? This cannot be undone.')) return;
+    localStorage.removeItem('gw_workers');
+    localStorage.removeItem('gw_claims');
+    InsuranceState.workers = [];
+    InsuranceState.claims  = [];
+    document.getElementById('seedMsg').innerHTML = '<div class="alert alert-warning">🗑️ All data cleared.</div>';
+    renderAll();
+  }
+
+  function renderAll() {
+    renderStats();
+    renderWorkers();
+    renderClaims();
+  }
+
+  renderAll();
+</script>
+</body>
+</html>
